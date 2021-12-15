@@ -11,33 +11,33 @@
 #define MYTZ "CET-1CEST,M3.5.0,M10.5.0/3"
 #include <time.h>
 #include <FS.h>
-#include <AsyncTelegram2.h>
+#include <AsyncTelegramBot.h>
 
 #ifdef ESP8266
-  #include <ESP8266WiFi.h>
-  #include <LittleFS.h>
-  #define FILESYSTEM LittleFS
-  BearSSL::WiFiClientSecure client;
-  BearSSL::Session   session;
-  BearSSL::X509List  certificate(telegram_cert);
+#include <ESP8266WiFi.h>
+#include <LittleFS.h>
+#define FILESYSTEM LittleFS
+BearSSL::WiFiClientSecure client;
+BearSSL::Session session;
+BearSSL::X509List certificate(telegram_cert);
 #elif defined(ESP32)
-  #include <WiFi.h>
-  #include <SPIFFS.h>
-  #define FILESYSTEM SPIFFS
-  #include <WiFiClientSecure.h>
-  WiFiClientSecure client;
+#include <WiFi.h>
+#include <SPIFFS.h>
+#define FILESYSTEM SPIFFS
+#include <WiFiClientSecure.h>
+WiFiClientSecure client;
 #endif
 
-AsyncTelegram2 myBot(client);
-const char* ssid  =  "xxxxxxxxxxx";     // SSID WiFi network
-const char* pass  =  "xxxxxxxxxxx";     // Password  WiFi network
-const char* token =  "xxxxxxxxxxxxxx";  // Telegram token
+AsyncTelegramBot myBot(client);
+const char *ssid = "xxxxxxxxxxx";     // SSID WiFi network
+const char *pass = "xxxxxxxxxxx";     // Password  WiFi network
+const char *token = "xxxxxxxxxxxxxx"; // Telegram token
 
 // Check the userid with the help of bot @JsonDumpBot or @getidsbot (work also with groups)
 // https://t.me/JsonDumpBot  or  https://t.me/getidsbot
 int64_t userid = 1234567890;
 
-const char* firmware_version = __TIME__;
+const char *firmware_version = __TIME__;
 
 // Split scheduler functions in a separate .h file
 #include "scheduler.h"
@@ -51,7 +51,8 @@ bool saveConfig = false;
 const char *filename = "/config.txt";
 bool do_restart = false;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   Serial.println("\n");
   pinMode(LED_BUILTIN, OUTPUT);
@@ -63,12 +64,14 @@ void setup() {
   // connects to access point
   WiFi.begin(ssid, pass);
   delay(500);
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print('.');
     delay(500);
   }
 
-  if (!FILESYSTEM.begin()) {
+  if (!FILESYSTEM.begin())
+  {
     Serial.println(F("Unable to mount filesystem, check selected partition scheme"));
     FILESYSTEM.format();
     delay(1000);
@@ -100,9 +103,8 @@ void setup() {
   myBot.sendTo(userid, welcome_msg);
 }
 
-
-
-void loop() {
+void loop()
+{
   if (do_restart)
     doRestart();
 
@@ -111,19 +113,20 @@ void loop() {
   // get updated timedate and check if there is any active event
   time_t epoch = time(nullptr);
   tm now = *gmtime(&epoch);
-  uint32_t startOfDay = mktime(&now) - now.tm_hour * 3600UL  -  now.tm_min * 60UL - now.tm_sec;
+  uint32_t startOfDay = mktime(&now) - now.tm_hour * 3600UL - now.tm_min * 60UL - now.tm_sec;
 
-  for (uint8_t i = 0; i < lastEvent; i++) {
+  for (uint8_t i = 0; i < lastEvent; i++)
+  {
     // For each event stored we evaluate whether it is necessary to activate
-    if (startOfDay + events[i].start == (uint32_t) epoch
-        && bitRead(events[i].days, now.tm_wday) )
+    if (startOfDay + events[i].start == (uint32_t)epoch && bitRead(events[i].days, now.tm_wday))
     {
-      events[i].active = true;  // Now we can use this as trigger for any need
+      events[i].active = true; // Now we can use this as trigger for any need
       delay(500);
       Serial.printf("\nEvent n. %d actvivated\n", i + 1);
     }
 
-    if (startOfDay + events[i].stop == (uint32_t) epoch) {
+    if (startOfDay + events[i].stop == (uint32_t)epoch)
+    {
       events[i].active = false;
       delay(500);
       Serial.printf("\nEvent n. %d deactvivated\n", i + 1);
@@ -132,72 +135,80 @@ void loop() {
 
   // LED blinking
   static uint32_t ledTime = millis();
-  if (millis() - ledTime > 200) {
+  if (millis() - ledTime > 200)
+  {
     ledTime = millis();
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
 
   // check if there is a new incoming message and parse the content
   TBMessage msg;
-  if (myBot.getNewMessage(msg)) {
+  if (myBot.getNewMessage(msg))
+  {
 
     // Is this message intended for scheduler handler?
-    bool msgParsed =  schedulerHandler(msg, myBot);
+    bool msgParsed = schedulerHandler(msg, myBot);
 
     // nope, process the message received for remaining cases
-    if (! msgParsed) {
+    if (!msgParsed)
+    {
       String txtMessage = msg.text;
       Serial.print(F("\nMessagge: "));
       Serial.println(txtMessage);
 
       // Send back to user current time
-      if (txtMessage.equalsIgnoreCase("/time")) {
+      if (txtMessage.equalsIgnoreCase("/time"))
+      {
         time_t epoch = time(nullptr);
         now = *localtime(&epoch);
-        char buffer [40];
-        strftime (buffer, 40, "%c", &now);
+        char buffer[40];
+        strftime(buffer, 40, "%c", &now);
         myBot.sendMessage(msg, buffer);
       }
 
       // Inform the user about actual firmware version
-      else if (txtMessage.equalsIgnoreCase("/version")) {
+      else if (txtMessage.equalsIgnoreCase("/version"))
+      {
         char fw_info[30];
         snprintf(fw_info, 30, "Firmware version: %s", firmware_version);
         myBot.sendMessage(msg, fw_info);
       }
 
       // User request a restart
-      else if (txtMessage.equalsIgnoreCase("/restart")) {
+      else if (txtMessage.equalsIgnoreCase("/restart"))
+      {
         myBot.sendMessage(msg, "Going to restart MCU...");
         do_restart = true;
       }
 
       // User request a list of supported commands
-      else if (txtMessage.equalsIgnoreCase("/help")) {
+      else if (txtMessage.equalsIgnoreCase("/help"))
+      {
         myBot.sendMessage(msg,
-            "System:\n/restart for restart MCU\n"
-            "/version for print the current firmware version\n"
-            "/time for local system timedate\n\nScheduler:\n"
-            "/clear delete all scheduled events \n\n"
-            "/list print all events in memory\n"
-            "/edit to edit a specific event\n"
-            "/add to add new event to list");
+                          "System:\n/restart for restart MCU\n"
+                          "/version for print the current firmware version\n"
+                          "/time for local system timedate\n\nScheduler:\n"
+                          "/clear delete all scheduled events \n\n"
+                          "/list print all events in memory\n"
+                          "/edit to edit a specific event\n"
+                          "/add to add new event to list");
       }
 
       // Not a supported command
-      else {
+      else
+      {
         myBot.sendMessage(msg, "Command not supported. Type /help for complete list");
       }
     }
-
   }
 }
 
-
-bool loadConfigFile() {
+bool loadConfigFile()
+{
   // Open file for reading
   File file = FILESYSTEM.open(filename, "r");
-  if (!file) {
+  if (!file)
+  {
     Serial.println(F("Fail to open configuration file"));
     return false;
   }
@@ -209,10 +220,12 @@ bool loadConfigFile() {
 
   serializeJsonPretty(doc, Serial);
   Serial.println();
-  for (uint8_t i = 0; i < MAX_EVENTS; i++) {
+  for (uint8_t i = 0; i < MAX_EVENTS; i++)
+  {
     String evt_name = "event";
     evt_name += i + 1;
-    if (doc[evt_name]) {
+    if (doc[evt_name])
+    {
       events[i].start = doc[evt_name]["start"];
       events[i].stop = doc[evt_name]["stop"];
       events[i].days = doc[evt_name]["days"];
@@ -224,8 +237,8 @@ bool loadConfigFile() {
   return true;
 }
 
-
-void saveConfigFile() {
+void saveConfigFile()
+{
   // Open file for writing
   File file = FILESYSTEM.open(filename, "w");
   if (file)
@@ -237,7 +250,8 @@ void saveConfigFile() {
   StaticJsonDocument<1024> doc;
   JsonObject root = doc.to<JsonObject>();
 
-  for (uint8_t i = 0; i < lastEvent; i++) {
+  for (uint8_t i = 0; i < lastEvent; i++)
+  {
     String evt_name = "event";
     evt_name += i + 1;
     JsonObject evt = root.createNestedObject(evt_name);
@@ -248,7 +262,8 @@ void saveConfigFile() {
 
   serializeJsonPretty(root, Serial);
   Serial.println();
-  if (serializeJson(root, file) == 0) {
+  if (serializeJson(root, file) == 0)
+  {
     Serial.println(F("Failed to write to file"));
   }
 
@@ -256,10 +271,12 @@ void saveConfigFile() {
   file.close();
 }
 
-void doRestart() {
+void doRestart()
+{
   do_restart = false;
   // Wait until bot synced with telegram to prevent cyclic reboot
-  while (! myBot.noNewMessage()) {
+  while (!myBot.noNewMessage())
+  {
     Serial.print(".");
     delay(100);
   }
@@ -268,16 +285,18 @@ void doRestart() {
   ESP.restart();
 }
 
-void printHeapStats() {
+void printHeapStats()
+{
   time_t now = time(nullptr);
   struct tm tInfo = *localtime(&now);
   static uint32_t infoTime;
-  if (millis() - infoTime > 5000) {
+  if (millis() - infoTime > 5000)
+  {
     infoTime = millis();
 #ifdef ESP32
     //heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
     Serial.printf("%02d:%02d:%02d - Total free: %6d - Max block: %6d\n",
-                  tInfo.tm_hour, tInfo.tm_min, tInfo.tm_sec, heap_caps_get_free_size(0), heap_caps_get_largest_free_block(0) );
+                  tInfo.tm_hour, tInfo.tm_min, tInfo.tm_sec, heap_caps_get_free_size(0), heap_caps_get_largest_free_block(0));
 #elif defined(ESP8266)
     uint32_t free;
     uint16_t max;

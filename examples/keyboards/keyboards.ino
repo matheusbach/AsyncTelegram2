@@ -15,53 +15,53 @@
 /* 
   Set true if you want use external library for SSL connection instead ESP32@WiFiClientSecure 
   For example https://github.com/OPEnSLab-OSU/SSLClient/ is very efficient BearSSL library.
-  You can use AsyncTelegram2 even with other MCUs or transport layer (ex. Ethernet)
+  You can use AsyncTelegramBot even with other MCUs or transport layer (ex. Ethernet)
   With SSLClient, be sure "certificates.h" file is present in sketch folder
-*/ 
-#define USE_CLIENTSSL true  
+*/
+#define USE_CLIENTSSL true
 
-#include <AsyncTelegram2.h>
+#include <AsyncTelegramBot.h>
 
 // Timezone definition
 #define MYTZ "CET-1CEST,M3.5.0,M10.5.0/3"
 #include <time.h>
 
 #ifdef ESP8266
-  #include <ESP8266WiFi.h>
-  BearSSL::WiFiClientSecure client;
-  BearSSL::Session   session;
-  BearSSL::X509List  certificate(telegram_cert);
-  
+#include <ESP8266WiFi.h>
+BearSSL::WiFiClientSecure client;
+BearSSL::Session session;
+BearSSL::X509List certificate(telegram_cert);
+
 #elif defined(ESP32)
-  #include <WiFi.h>
-  #include <WiFiClient.h>
-  #if USE_CLIENTSSL
-    #include <SSLClient.h>  
-    #include "tg_certificate.h"
-    WiFiClient base_client;
-    SSLClient client(base_client, TAs, (size_t)TAs_NUM, A0, 1, SSLClient::SSL_ERROR);
-  #else
-    #include <WiFiClientSecure.h>
-    WiFiClientSecure client;  
-  #endif
+#include <WiFi.h>
+#include <WiFiClient.h>
+#if USE_CLIENTSSL
+#include <SSLClient.h>
+#include "tg_certificate.h"
+WiFiClient base_client;
+SSLClient client(base_client, TAs, (size_t)TAs_NUM, A0, 1, SSLClient::SSL_ERROR);
+#else
+#include <WiFiClientSecure.h>
+WiFiClientSecure client;
+#endif
 #endif
 
-AsyncTelegram2 myBot(client);
+AsyncTelegramBot myBot(client);
 
-const char* ssid  =  "xxxxxxxxx";     // SSID WiFi network
-const char* pass  =  "xxxxxxxxx";     // Password  WiFi network
-const char* token =  "xxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx";  // Telegram token
-
+const char *ssid = "xxxxxxxxx";                                  // SSID WiFi network
+const char *pass = "xxxxxxxxx";                                  // Password  WiFi network
+const char *token = "xxxxxxxxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; // Telegram token
 
 ReplyKeyboard myReplyKbd;   // reply keyboard object helper
 InlineKeyboard myInlineKbd; // inline keyboard object helper
 bool isKeyboardActive;      // store if the reply keyboard is shown
 
-#define LIGHT_ON_CALLBACK  "lightON"  // callback data sent when "LIGHT ON" button is pressed
+#define LIGHT_ON_CALLBACK "lightON"   // callback data sent when "LIGHT ON" button is pressed
 #define LIGHT_OFF_CALLBACK "lightOFF" // callback data sent when "LIGHT OFF" button is pressed
 const uint8_t LED = 4;
 
-void setup() {
+void setup()
+{
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(LED, OUTPUT);
   // initialize the Serial
@@ -73,7 +73,8 @@ void setup() {
   // connects to the access point
   WiFi.begin(ssid, pass);
   delay(500);
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print('.');
     delay(500);
   }
@@ -88,9 +89,9 @@ void setup() {
 #elif defined(ESP32)
   // Sync time with NTP
   configTzTime(MYTZ, "time.google.com", "time.windows.com", "pool.ntp.org");
-  #if USE_CLIENTSSL == false
-    client.setCACert(telegram_cert);
-  #endif
+#if USE_CLIENTSSL == false
+  client.setCACert(telegram_cert);
+#endif
 #endif
 
   // Set the Telegram bot properties
@@ -130,13 +131,14 @@ void setup() {
   myInlineKbd.addButton("GitHub", "https://github.com/cotestatnt/AsyncTelegram/", KeyboardButtonURL);
 }
 
-
-void loop() {
+void loop()
+{
 
   // In the meantime LED_BUILTIN will blink with a fixed frequency
   // to evaluate async and non-blocking working of library
   static uint32_t ledTime = millis();
-  if (millis() - ledTime > 200) {
+  if (millis() - ledTime > 200)
+  {
     ledTime = millis();
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
@@ -145,88 +147,98 @@ void loop() {
   TBMessage msg;
 
   // if there is an incoming message...
-  if (myBot.getNewMessage(msg)) {
+  if (myBot.getNewMessage(msg))
+  {
     // check what kind of message I received
     MessageType msgType = msg.messageType;
     String msgText = msg.text;
 
-    switch (msgType) {
-      case MessageText :
-        // received a text message       
-        Serial.print("\nText message received: ");
-        Serial.println(msgText);
+    switch (msgType)
+    {
+    case MessageText:
+      // received a text message
+      Serial.print("\nText message received: ");
+      Serial.println(msgText);
 
-        // check if is show keyboard command
-        if (msgText.equalsIgnoreCase("/reply_keyboard")) {
-          // the user is asking to show the reply keyboard --> show it
-          myBot.sendMessage(msg, "This is reply keyboard:", myReplyKbd);
-          isKeyboardActive = true;
+      // check if is show keyboard command
+      if (msgText.equalsIgnoreCase("/reply_keyboard"))
+      {
+        // the user is asking to show the reply keyboard --> show it
+        myBot.sendMessage(msg, "This is reply keyboard:", myReplyKbd);
+        isKeyboardActive = true;
+      }
+      else if (msgText.equalsIgnoreCase("/inline_keyboard"))
+      {
+        myBot.sendMessage(msg, "This is inline keyboard:", myInlineKbd);
+      }
+
+      // check if the reply keyboard is active
+      else if (isKeyboardActive)
+      {
+        // is active -> manage the text messages sent by pressing the reply keyboard buttons
+        if (msgText.equalsIgnoreCase("/hide_keyboard"))
+        {
+          // sent the "hide keyboard" message --> hide the reply keyboard
+          myBot.removeReplyKeyboard(msg, "Reply keyboard removed");
+          isKeyboardActive = false;
         }
-        else if (msgText.equalsIgnoreCase("/inline_keyboard")) {
-          myBot.sendMessage(msg, "This is inline keyboard:", myInlineKbd);
-          
+        else
+        {
+          // print every others messages received
+          myBot.sendMessage(msg, msg.text);
         }
-        
-        // check if the reply keyboard is active
-        else if (isKeyboardActive) {
-          // is active -> manage the text messages sent by pressing the reply keyboard buttons
-          if (msgText.equalsIgnoreCase("/hide_keyboard")) {
-            // sent the "hide keyboard" message --> hide the reply keyboard
-            myBot.removeReplyKeyboard(msg, "Reply keyboard removed");
-            isKeyboardActive = false;
-          } else {
-            // print every others messages received
-            myBot.sendMessage(msg, msg.text);
-          }
-        } 
+      }
 
-        // the user write anything else and the reply keyboard is not active --> show a hint message
-        else {          
-          myBot.sendMessage(msg, "Try /reply_keyboard or /inline_keyboard");
-        }
-        break;
+      // the user write anything else and the reply keyboard is not active --> show a hint message
+      else
+      {
+        myBot.sendMessage(msg, "Try /reply_keyboard or /inline_keyboard");
+      }
+      break;
 
-      case MessageQuery:
-        // received a callback query message
-        msgText = msg.callbackQueryData;
-        Serial.print("\nCallback query message received: ");
-        Serial.println(msgText);
-        
-        if (msgText.equalsIgnoreCase(LIGHT_ON_CALLBACK)) {
-          // pushed "LIGHT ON" button...
-          Serial.println("\nSet light ON");
-          digitalWrite(LED, HIGH);
-          // terminate the callback with an alert message
-          myBot.endQuery(msg, "Light on", true);
-        } 
-        else if (msgText.equalsIgnoreCase(LIGHT_OFF_CALLBACK)) {
-          // pushed "LIGHT OFF" button...
-          Serial.println("\nSet light OFF");
-          digitalWrite(LED, LOW);
-          // terminate the callback with a popup message
-          myBot.endQuery(msg, "Light off");
-        }
-        
-        break;
+    case MessageQuery:
+      // received a callback query message
+      msgText = msg.callbackQueryData;
+      Serial.print("\nCallback query message received: ");
+      Serial.println(msgText);
 
-      case MessageLocation:
-        // received a location message --> send a message with the location coordinates
-        char bufL[50];
-        snprintf(bufL, sizeof(bufL), "Longitude: %f\nLatitude: %f\n", msg.location.longitude, msg.location.latitude) ;
-        myBot.sendMessage(msg, bufL);
-        Serial.println(bufL);
-        break;
+      if (msgText.equalsIgnoreCase(LIGHT_ON_CALLBACK))
+      {
+        // pushed "LIGHT ON" button...
+        Serial.println("\nSet light ON");
+        digitalWrite(LED, HIGH);
+        // terminate the callback with an alert message
+        myBot.endQuery(msg, "Light on", true);
+      }
+      else if (msgText.equalsIgnoreCase(LIGHT_OFF_CALLBACK))
+      {
+        // pushed "LIGHT OFF" button...
+        Serial.println("\nSet light OFF");
+        digitalWrite(LED, LOW);
+        // terminate the callback with a popup message
+        myBot.endQuery(msg, "Light off");
+      }
 
-      case MessageContact:
-        char bufC[50];
-        snprintf(bufC, sizeof(bufC), "Contact information received: %s - %s\n", msg.contact.firstName, msg.contact.phoneNumber ) ;
-        // received a contact message --> send a message with the contact information
-        myBot.sendMessage(msg, bufC);
-        Serial.println(bufC);
-        break;
-        
-      default:
-        break;
+      break;
+
+    case MessageLocation:
+      // received a location message --> send a message with the location coordinates
+      char bufL[50];
+      snprintf(bufL, sizeof(bufL), "Longitude: %f\nLatitude: %f\n", msg.location.longitude, msg.location.latitude);
+      myBot.sendMessage(msg, bufL);
+      Serial.println(bufL);
+      break;
+
+    case MessageContact:
+      char bufC[50];
+      snprintf(bufC, sizeof(bufC), "Contact information received: %s - %s\n", msg.contact.firstName, msg.contact.phoneNumber);
+      // received a contact message --> send a message with the contact information
+      myBot.sendMessage(msg, bufC);
+      Serial.println(bufC);
+      break;
+
+    default:
+      break;
     }
   }
 }

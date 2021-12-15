@@ -1,4 +1,4 @@
-AsyncTelegram2	KEYWORD1
+AsyncTelegramBot	KEYWORD1
 InlineKeyboard	KEYWORD1
 ReplyKeyboard	KEYWORD1
 

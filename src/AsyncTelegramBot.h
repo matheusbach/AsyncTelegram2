@@ -1,5 +1,5 @@
-#ifndef ASYNCTELEGRAMV2
-#define ASYNCTELEGRAMV2
+#ifndef ASYNCTELEGRAMBOT
+#define ASYNCTELEGRAMBOT
 
 // for using int_64 data
 #define ARDUINOJSON_USE_LONG_LONG 	1
@@ -71,15 +71,14 @@ ReYNnyicsbkqWletNw+vHX/bvZ8=
 -----END CERTIFICATE-----
 )EOF";
 
-
-class AsyncTelegram2
+class AsyncTelegramBot
 {
 
 public:
     // default constructor
-    AsyncTelegram2(Client &client);
+    AsyncTelegramBot(Client &client);
     // default destructor
-    ~AsyncTelegram2();
+    ~AsyncTelegramBot();
 
     // test the connection between ESP8266 and the telegram server
     // returns
@@ -142,6 +141,8 @@ public:
     inline bool sendMessage(const TBMessage &msg, const char* message, ReplyKeyboard &keyboard) {
         return sendMessage(msg, message, keyboard.getJSON().c_str());
     }
+
+    bool sendTextMessage(int64_t chat_id, String text, String parse_mode = "Default", String entities = "", bool disable_web_page_preview = false, bool disable_notification = false, int32_t reply_to_message_id = 0, bool force_reply = false, bool allow_sending_without_reply = true, String reply_markup = "");
 
     // Forward a specific message to user or chat
     bool forwardMessage(const TBMessage &msg, const int32_t to_chatid);

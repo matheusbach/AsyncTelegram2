@@ -1,25 +1,32 @@
-#include "AsyncTelegram2.h"
+#include "AsyncTelegramBot.h"
 extern void saveConfigFile();
 extern void printHeapStats();
 
-#define ALL_DAYS    "all_day"
-#define WORK_DAYS   "work_day"
-#define WEEKEND     "weekend_only"
-#define SINGLE_DAY  "single_day"
+#define ALL_DAYS "all_day"
+#define WORK_DAYS "work_day"
+#define WEEKEND "weekend_only"
+#define SINGLE_DAY "single_day"
 
-#define MONDAY      "Monday"
-#define TUESDAY     "Tuesday"
-#define WEDNESDAY   "Wednesday"
-#define THURSDAY    "Thursday"
-#define FRIDAY      "Friday"
-#define SATURDAY    "Saturday"
-#define SUNDAY      "Sunday"
+#define MONDAY "Monday"
+#define TUESDAY "Tuesday"
+#define WEDNESDAY "Wednesday"
+#define THURSDAY "Thursday"
+#define FRIDAY "Friday"
+#define SATURDAY "Saturday"
+#define SUNDAY "Sunday"
 
-const char* dayNames[] PROGMEM = {MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY } ;
-enum WaitState {IDLE, EDIT_EVENT, GET_DAY, GET_START, GET_STOP};
+const char *dayNames[] PROGMEM = {MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
+enum WaitState
+{
+  IDLE,
+  EDIT_EVENT,
+  GET_DAY,
+  GET_START,
+  GET_STOP
+};
 
 #define MAX_MSG_LEN 128
-#define MAX_EVENTS  20
+#define MAX_EVENTS 20
 
 char userInput[20];
 int inputIndex = 0;
@@ -29,7 +36,8 @@ bool awaitUserInput = false;
 // let's edit the last inline keyboard sent
 bool inlineKeyboardSent = false;
 
-typedef struct  {
+typedef struct
+{
   uint32_t start;
   uint32_t stop;
   uint8_t days;
@@ -44,12 +52,15 @@ uint8_t eventIndex = 0;
 char replyBuffer[MAX_MSG_LEN];
 
 // Add or edit an event
-int addEvent(Event_t event, uint8_t index) {
-  if (index == MAX_EVENTS) {
+int addEvent(Event_t event, uint8_t index)
+{
+  if (index == MAX_EVENTS)
+  {
     events[lastEvent++] = event;
     index = lastEvent - 1;
   }
-  else if (index <= lastEvent) {
+  else if (index <= lastEvent)
+  {
     events[index] = event;
   }
   saveConfigFile();
@@ -59,15 +70,17 @@ int addEvent(Event_t event, uint8_t index) {
   return index;
 }
 
-void getSchedulerKeyboard(InlineKeyboard &kbd) {
+void getSchedulerKeyboard(InlineKeyboard &kbd)
+{
   kbd.addButton("Single", SINGLE_DAY, KeyboardButtonQuery);
   kbd.addButton("All days", ALL_DAYS, KeyboardButtonQuery);
   kbd.addButton("Work days", WORK_DAYS, KeyboardButtonQuery);
   kbd.addButton("Weekend", WEEKEND, KeyboardButtonQuery);
 }
 
-void getWeekdayKeyboard(InlineKeyboard &kbd) {
-  kbd.addButton(MONDAY, MONDAY, KeyboardButtonQuery );
+void getWeekdayKeyboard(InlineKeyboard &kbd)
+{
+  kbd.addButton(MONDAY, MONDAY, KeyboardButtonQuery);
   kbd.addButton(TUESDAY, TUESDAY, KeyboardButtonQuery);
   kbd.addButton(WEDNESDAY, WEDNESDAY, KeyboardButtonQuery);
   kbd.addRow();
@@ -79,28 +92,35 @@ void getWeekdayKeyboard(InlineKeyboard &kbd) {
   kbd.addButton("CANCEL", "CANCEL", KeyboardButtonQuery);
 }
 
-void listScheduledEvents(TBMessage &theMsg, AsyncTelegram2 &theBot, int event = 0) {
-  int from  = 0;
+void listScheduledEvents(TBMessage &theMsg, AsyncTelegramBot &theBot, int event = 0)
+{
+  int from = 0;
   int to = lastEvent;
 
-  if(event != 0) {
+  if (event != 0)
+  {
     from = event;
     to = event + 1;
   }
 
-  if (lastEvent != 0) {
-    for (uint8_t i = from; i < to; i++) {
+  if (lastEvent != 0)
+  {
+    for (uint8_t i = from; i < to; i++)
+    {
       Event_t event = events[i];
 
       snprintf(replyBuffer, MAX_MSG_LEN, "Timer n° %d\nActive from %02d:%02d to %02d:%02d\n",
-               i + 1, (int)event.start/3600, (int)(event.start % 3600)/60,
-               (int)event.stop/3600, (int)(event.stop % 3600)/60);
+               i + 1, (int)event.start / 3600, (int)(event.start % 3600) / 60,
+               (int)event.stop / 3600, (int)(event.stop % 3600) / 60);
       strcat(replyBuffer, "of ");
 
-      bool first = true;   // Used to print the ',' only when neeeded
-      for (uint8_t i = 0; i < 7; i++) {
-        if (bitRead(event.days, i)) {
-          if (!first) strcat(replyBuffer, ", ");
+      bool first = true; // Used to print the ',' only when neeeded
+      for (uint8_t i = 0; i < 7; i++)
+      {
+        if (bitRead(event.days, i))
+        {
+          if (!first)
+            strcat(replyBuffer, ", ");
           first = false;
           strcat(replyBuffer, dayNames[i]);
         }
@@ -113,10 +133,11 @@ void listScheduledEvents(TBMessage &theMsg, AsyncTelegram2 &theBot, int event = 
     theBot.sendMessage(theMsg, "Timer list empty");
 }
 
-void showKeypad(TBMessage &theMsg, AsyncTelegram2 &theBot, const String& msg, bool clear = true) {
+void showKeypad(TBMessage &theMsg, AsyncTelegramBot &theBot, const String &msg, bool clear = true)
+{
 
   // The inline keyboard can be created at runtime, or also a static string loaded from flash
-  static const char keypad_kbd[] PROGMEM =  R"EOF(
+  static const char keypad_kbd[] PROGMEM = R"EOF(
   {
   "inline_keyboard": [
     [
@@ -147,52 +168,62 @@ void showKeypad(TBMessage &theMsg, AsyncTelegram2 &theBot, const String& msg, bo
 )EOF";
 
   // Clear input buffer ?
-  if (clear) {
+  if (clear)
+  {
     memset(userInput, '\0', sizeof(userInput));
     inputIndex = 0;
   }
 
-  if( !inlineKeyboardSent) {
+  if (!inlineKeyboardSent)
+  {
     inlineKeyboardSent = true;
     theBot.sendMessage(theMsg, msg.c_str(), keypad_kbd);
   }
-  else {
+  else
+  {
     theBot.editMessage(theMsg, msg, keypad_kbd);
   }
 
   awaitUserInput = true;
 }
 
-
-bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
-  static uint8_t waitState = IDLE;         // State for event handling state machine
-  static uint32_t waitTime;                // Timeout for waiting user messages
+bool schedulerHandler(TBMessage &theMsg, AsyncTelegramBot &theBot)
+{
+  static uint8_t waitState = IDLE; // State for event handling state machine
+  static uint32_t waitTime;        // Timeout for waiting user messages
 
   // This handler only parses messages of type MessageQuery and MessageText
-  if (theMsg.messageType == MessageText ) {
+  if (theMsg.messageType == MessageText)
+  {
     String msgText = theMsg.text;
 
     // Is a supported scheduler command?
-    if ( msgText.equalsIgnoreCase("/edit")) {
+    if (msgText.equalsIgnoreCase("/edit"))
+    {
       waitState = EDIT_EVENT;
       InlineKeyboard eventKbd;
-      if (lastEvent != 0) {
-        for (uint8_t i = 0; i < lastEvent; i++) {
-          String lbl = "Timer " ;
-          lbl += String(i+1);
-          eventKbd.addButton(lbl.c_str(), String(i+1).c_str(), KeyboardButtonQuery );
-          if (i==3) eventKbd.addRow();
+      if (lastEvent != 0)
+      {
+        for (uint8_t i = 0; i < lastEvent; i++)
+        {
+          String lbl = "Timer ";
+          lbl += String(i + 1);
+          eventKbd.addButton(lbl.c_str(), String(i + 1).c_str(), KeyboardButtonQuery);
+          if (i == 3)
+            eventKbd.addRow();
         }
       }
       theBot.sendMessage(theMsg, "Select Timer to be edited:", eventKbd);
       inlineKeyboardSent = true;
       return true;
     }
-    else if ( msgText.equalsIgnoreCase("/list") ) {
+    else if (msgText.equalsIgnoreCase("/list"))
+    {
       listScheduledEvents(theMsg, theBot);
       return true;
     }
-    else if (msgText.equalsIgnoreCase("/add")) {
+    else if (msgText.equalsIgnoreCase("/add"))
+    {
       eventIndex = MAX_EVENTS;
       // Create InlineKeyboard keyboard and send with message
       InlineKeyboard scheduleKbd;
@@ -201,40 +232,47 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
       inlineKeyboardSent = true;
       return true;
     }
-    else if (msgText.equalsIgnoreCase("/clear")) {
+    else if (msgText.equalsIgnoreCase("/clear"))
+    {
       lastEvent = 0;
       return true;
     }
   }
 
   // Received a callback query message (aka text associated to inline buttons)
-  else if (theMsg.messageType == MessageQuery ) {
+  else if (theMsg.messageType == MessageQuery)
+  {
     waitTime = millis();
-    String queryMsg = theMsg.callbackQueryData;   // Get the callback query text
+    String queryMsg = theMsg.callbackQueryData; // Get the callback query text
 
     // if awaitUserInput is true, this reply could be one of keypad inline button
-    if(awaitUserInput) {
+    if (awaitUserInput)
+    {
       //theBot.endQuery(theMsg, userInput);
 
       // Is a number or one of characters '.',  ':',  '/'
-      if (queryMsg.length() == 1) {
+      if (queryMsg.length() == 1)
+      {
         userInput[inputIndex++] = queryMsg[0];
         // Update keypad and text of message
         showKeypad(theMsg, theBot, userInput, false);
       }
 
-      else if (queryMsg.equals("DELETE")) {
+      else if (queryMsg.equals("DELETE"))
+      {
         inputIndex--;
         userInput[inputIndex] = '\0';
         showKeypad(theMsg, theBot, userInput, false);
       }
-      else if (queryMsg.equals("CONFIRM")) {
+      else if (queryMsg.equals("CONFIRM"))
+      {
 
-         // User has confirmed the new start time
-        if (waitState == GET_START){
+        // User has confirmed the new start time
+        if (waitState == GET_START)
+        {
           Serial.println(F("Start Time received from user"));
           int hour = 10, minute = 0;
-          sscanf (userInput, "%d:%d", &hour, &minute);
+          sscanf(userInput, "%d:%d", &hour, &minute);
           theEvent.start = hour * 3600 + minute * 60;
 
           // Now query user for stop time
@@ -244,11 +282,12 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
         }
 
         // User has confirmed the new stop time
-        else if (waitState == GET_STOP){
+        else if (waitState == GET_STOP)
+        {
           theBot.endQuery(theMsg, "OK");
           Serial.println(F("Stop Time received from user"));
           int hour = 11, minute = 0;
-          sscanf (userInput, "%d:%d", &hour, &minute);
+          sscanf(userInput, "%d:%d", &hour, &minute);
           theEvent.stop = hour * 3600 + minute * 60;
 
           // Now we have collected all required data, add or edit event
@@ -265,7 +304,8 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
     }
 
     // User has just pushed SINGLE_DAY inline button
-    if (queryMsg.equals(SINGLE_DAY)) {
+    if (queryMsg.equals(SINGLE_DAY))
+    {
       // Create day-name keyboard and send with message
       InlineKeyboard weekdaysKbd;
       getWeekdayKeyboard(weekdaysKbd);
@@ -276,7 +316,8 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
     }
 
     // User has just pushed ALL_DAYS inline button
-    else if (queryMsg.equals(ALL_DAYS)) {
+    else if (queryMsg.equals(ALL_DAYS))
+    {
 
       // Set active days for this event
       Serial.println(ALL_DAYS);
@@ -290,7 +331,8 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
     }
 
     // User has just pushed WORK_DAYS inline button
-    else if (queryMsg.equals(WORK_DAYS)) {
+    else if (queryMsg.equals(WORK_DAYS))
+    {
 
       // Set active days for this event
       Serial.println(WORK_DAYS);
@@ -304,7 +346,8 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
     }
 
     // User has just pushed WEEKEND inline button
-    else if (queryMsg.equals(WEEKEND)) {
+    else if (queryMsg.equals(WEEKEND))
+    {
 
       // Set active days for this event
       Serial.println(WEEKEND);
@@ -318,43 +361,48 @@ bool schedulerHandler(TBMessage &theMsg, AsyncTelegram2 &theBot) {
     }
 
     // Depending from state take action with user inputs
-    switch (waitState) {
+    switch (waitState)
+    {
 
-      // If actual state is GET_DAY, we are waiting for one of day name inline button
-      case GET_DAY: {
-        waitState = IDLE;
-        waitTime = millis();
-        for (uint8_t i = 0; i < 7; i++) {
-          if (queryMsg.equals(dayNames[i])) {
-            bitSet(theEvent.days, i);
+    // If actual state is GET_DAY, we are waiting for one of day name inline button
+    case GET_DAY:
+    {
+      waitState = IDLE;
+      waitTime = millis();
+      for (uint8_t i = 0; i < 7; i++)
+      {
+        if (queryMsg.equals(dayNames[i]))
+        {
+          bitSet(theEvent.days, i);
 
-            // Query user for start time
-            showKeypad(theMsg, theBot, "Please insert Start time");
-            waitState = GET_START;
-            return true;
-          }
+          // Query user for start time
+          showKeypad(theMsg, theBot, "Please insert Start time");
+          waitState = GET_START;
+          return true;
         }
-        break;
       }
-
-      // If actual state is EDIT_EVENT, we are waiting for a event number (with inline buttons)
-      case EDIT_EVENT: {
-        eventIndex = queryMsg.toInt();
-        eventIndex--;       // array starts from 0, but humans don't like usually
-        snprintf(replyBuffer, MAX_MSG_LEN, "Editing Timer n° %d.\nSelect timer type", eventIndex + 1 );
-
-        // Ask user wich type of weekly events is
-        InlineKeyboard scheduleKbd;
-        getSchedulerKeyboard(scheduleKbd);
-        theBot.editMessage(theMsg, replyBuffer, scheduleKbd);
-        return true;
-      }
+      break;
     }
 
+    // If actual state is EDIT_EVENT, we are waiting for a event number (with inline buttons)
+    case EDIT_EVENT:
+    {
+      eventIndex = queryMsg.toInt();
+      eventIndex--; // array starts from 0, but humans don't like usually
+      snprintf(replyBuffer, MAX_MSG_LEN, "Editing Timer n° %d.\nSelect timer type", eventIndex + 1);
+
+      // Ask user wich type of weekly events is
+      InlineKeyboard scheduleKbd;
+      getSchedulerKeyboard(scheduleKbd);
+      theBot.editMessage(theMsg, replyBuffer, scheduleKbd);
+      return true;
+    }
+    }
   }
 
   // Timeout
-  if (millis() - waitTime > 15000 && waitState != IDLE) {
+  if (millis() - waitTime > 15000 && waitState != IDLE)
+  {
     waitState = IDLE;
     eventIndex = MAX_EVENTS;
     theBot.sendMessage(theMsg, "You did not respond in time", "");

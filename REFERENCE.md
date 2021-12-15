@@ -1,11 +1,11 @@
 # Reference
 Here you can find an explanation of the functionalities provided and how to use the library. 
-Check the [examples folder](https://github.com/cotestatnt/AsyncTelegram2/tree/master/examples) for demos and examples.
+Check the [examples folder](https://github.com/cotestatnt/AsyncTelegramBot/tree/master/examples) for demos and examples.
 ___
 ## Table of contents
 + [Introduction and quick start](#introduction-and-quick-start)
 + [Inline Keyboards](#inline-keyboards)
-  + [Using Inline Keyboards into AsyncTelegram2 class](#using-inline-keyboards-into--class)
+  + [Using Inline Keyboards into AsyncTelegramBot class](#using-inline-keyboards-into--class)
   + [Handling callback messages](#handling-callback-messages)
 + [Data types](#data-types)
   + [TBUser](#tbuser)
@@ -17,12 +17,12 @@ ___
   + [MessageType](#messagetype)
   + [InlineKeyboardButtonType](#inlinekeyboardbuttontype)
 + [Basic methods](#basic-methods)
-  + [AsyncTelegram2::setTelegramToken()](#settelegramtoken)
-  + [AsyncTelegram2::testConnection()](#testconnection)
-  + [AsyncTelegram2::getNewMessage()](#getnewmessage)
-  + [AsyncTelegram2::sendMessage()](#sendmessage)
-  + [AsyncTelegram2::endQuery()](#endquery)
-  + [AsyncTelegram2::removeReplyKeyboard()](#removereplykeyboard)
+  + [AsyncTelegramBot::setTelegramToken()](#settelegramtoken)
+  + [AsyncTelegramBot::testConnection()](#testconnection)
+  + [AsyncTelegramBot::getNewMessage()](#getnewmessage)
+  + [AsyncTelegramBot::sendMessage()](#sendmessage)
+  + [AsyncTelegramBot::endQuery()](#endquery)
+  + [AsyncTelegramBot::removeReplyKeyboard()](#removereplykeyboard)
   + [InlineKeyboard::addButton()](#inlinekeyboardaddbutton)
   + [InlineKeyboard::addRow()](#inlinekeyboardaddrow)
   + [InlineKeyboard::flushData()](#inlinekeyboardflushdata)
@@ -31,15 +31,15 @@ ___
 ## Introduction and quick start
 Once installed the library, you have to load it in your sketch and define wich type of HTTP client will be used for connection
 ```c++
-#include "AsyncTelegram2.h"
+#include "AsyncTelegramBot.h"
 BearSSL::WiFiClientSecure client;
 BearSSL::Session   session;
-BearSSL::X509List  certificate(telegram_cert);  // telegram_cert is a const char array define in AsyncTelegram2
+BearSSL::X509List  certificate(telegram_cert);  // telegram_cert is a const char array define in AsyncTelegramBot
  
 ```
-...at this point you can instantiate a `AsyncTelegram2` object, passing the client as parameter
+...at this point you can instantiate a `AsyncTelegramBot` object, passing the client as parameter
 ```c++
-AsyncTelegram2 myBot(client);
+AsyncTelegramBot myBot(client);
 ```
 ...Use the `setTelegramToken()` member function to set your Telegram Bot token in order establish connections with the bot
 ```c++
@@ -58,19 +58,19 @@ To send a simple message to a Telegram user, use the `sendMessage(TBMessage msg,
 ```c++
 myBot.sendMessage(msg, "message");
 ```
-See the [echoBot example](https://github.com/cotestatnt/AsyncTelegram2/blob/master/examples/echoBot/echoBot.ino) for further details.
+See the [echoBot example](https://github.com/cotestatnt/AsyncTelegramBot/blob/master/examples/echoBot/echoBot.ino) for further details.
 
 [back to TOC](#table-of-contents)
 ___
 ## Inline Keyboards
 The Inline Keyboards are special keyboards integrated directly into the messages they belong to: pressing buttons on inline keyboards doesn't result in messages sent to the chat. Instead, inline keyboards support buttons that work behind the scenes.
-AsyncTelegram2 class implements the following buttons:
+AsyncTelegramBot class implements the following buttons:
 + URL buttons: these buttons have a small arrow icon to help the user understand that tapping on a URL button will open an external link. A confirmation alert message is shown before opening the link in the browser.
 + Callback buttons: when a user presses a callback button, no messages are sent to the chat. Instead, the bot simply receives the relevant query. Upon receiving the query, the bot can display some result in a notification at the top of the chat screen or in an alert. It's also possible associate a callback function that will be executed when user press the inline keyboard button.
 
 [back to TOC](#table-of-contents)
 
-### Using Inline Keyboards into AsyncTelegram2 class
+### Using Inline Keyboards into AsyncTelegramBot class
 In order to show an inline keyboard, use the method [sendMessage()](#sendmessage) specifing the parameter `keyboard`.
 The `keyboard` parameter is a string that contains a JSON structure that define the inline keyboard. See [Telegram docs](https://core.telegram.org/bots/api#sendmessage).<br>
 To simplify the creation of an inline keyboard, there is an helper class called `InlineKeyboard`.
@@ -95,7 +95,7 @@ kbd.addRow();
 kbd.addButton("New Row Button label", "URL for the new row button", KeyboardButtonURL); // URL button
 ...
 ```
-If you plan to use callback functions associated to inlineQuery buttons, add the pointer to just defined InlineKeyboard object to the AsyncTelegram2 instance
+If you plan to use callback functions associated to inlineQuery buttons, add the pointer to just defined InlineKeyboard object to the AsyncTelegramBot instance
 ```c++
 myBot.addInlineKeyboard(&kbd);
 ...
@@ -114,7 +114,7 @@ Here an example:
 ```c++
 .....
 
-AsyncTelegram2 myBot(client);
+AsyncTelegramBot myBot(client);
 #define CALLBACK_QUERY_DATA  "QueryData"  // callback data sent when the button is pressed
 InlineKeyboard myKbd;  // custom inline keyboard object helper
 
@@ -150,7 +150,7 @@ void loop() {
 	delay(500); // wait 500 milliseconds
 }
 ```
-See the [keyboards example](https://github.com/shurillu/AsyncTelegram2/blob/master/examples/keyboards/keyboards.ino) for further details. <br>
+See the [keyboards example](https://github.com/shurillu/AsyncTelegramBot/blob/master/examples/keyboards/keyboards.ino) for further details. <br>
 
 [back to TOC](#table-of-contents)
 ___
@@ -253,11 +253,11 @@ where:
 + `sender` contains the sender data in a [TBUser](#tbuser) structure
 + `group` contains the group chat data in a [TBGroup](#tbgroup) structure
 + `date` contains the date when the message was sent, in Unix time
-+ `text` contains the received message (if a text message is received - see [AsyncTelegram2::getNewMessage()](#getnewmessage))
++ `text` contains the received message (if a text message is received - see [AsyncTelegramBot::getNewMessage()](#getnewmessage))
 + `chatInstance` contains the unique ID corresponding to the chat to which the message with the callback button was sent
 + `callbackQueryData` contains the data associated with the callback button
 + `callbackQueryID` contains the unique ID for the query
-+ `location` contains the location's longitude and latitude (if a location message is received - see [AsyncTelegram2::getNewMessage()](#getnewmessage))
++ `location` contains the location's longitude and latitude (if a location message is received - see [AsyncTelegramBot::getNewMessage()](#getnewmessage))
 + `contact` contains the contact information a [TBContact](#tbcontact) structure
 
 [back to TOC](#table-of-contents)
@@ -307,11 +307,11 @@ where:
 
 ___
 ## Basic methods
-Here you can find the basic member function. First you have to instantiate a AsyncTelegram2 object, like ` myBot`, then call the desired member function as `myBot.myDesiredFunction()`
+Here you can find the basic member function. First you have to instantiate a AsyncTelegramBot object, like ` myBot`, then call the desired member function as `myBot.myDesiredFunction()`
 
 [back to TOC](#table-of-contents)
-### `AsyncTelegram2::setTelegramToken()`
-`void AsyncTelegram2::setTelegramToken(String token)` <br><br>
+### `AsyncTelegramBot::setTelegramToken()`
+`void AsyncTelegramBot::setTelegramToken(String token)` <br><br>
 Set the Telegram Bot token. If you need infos about Telegram Bot and how to obtain a token, take a look  [here](https://core.telegram.org/bots#6-botfather). <br>
 Parameters:
 + `token`: the token that identify the Telegram Bot
@@ -322,8 +322,8 @@ Example:
 
 
 [back to TOC](#table-of-contents)
-### `AsyncTelegram2::begin()`
-`bool AsyncTelegram2::begin(void)` <br><br>
+### `AsyncTelegramBot::begin()`
+`bool AsyncTelegramBot::begin(void)` <br><br>
 Check the connection between board and the Telegram server. <br>
 Parameters: none <br>
 Returns: `true` if the board is able to send/receive data to/from the Telegram server. <br>
@@ -343,9 +343,9 @@ void loop() {
 ```
 
 [back to TOC](#table-of-contents)
-### `AsyncTelegram2::getNewMessage()`
+### `AsyncTelegramBot::getNewMessage()`
 
-`MessageType AsyncTelegram2::getNewMessage(TBMessage &message)` <br><br>
+`MessageType AsyncTelegramBot::getNewMessage(TBMessage &message)` <br><br>
 Get the first unread message from the message queue. Fetch text message and callback query message (for callback query messages, see [Inline Keyboards](#inline-keyboards)). This is a destructive operation: once read, the message will be marked as read so a new `getNewMessage` will fetch the next message (if any). <br>
 Parameters:
 + `message`: a `TBMessage` data structure that will contains the message data retrieved
@@ -355,7 +355,7 @@ Returns:
 
 
 [back to TOC](#table-of-contents)
-### `AsyncTelegram2::sendMessage()`
+### `AsyncTelegramBot::sendMessage()`
 `void sendMessage(const TBMessage &msg, const char* message, String keyboard = "");` <br>
 `void sendMessage(const TBMessage &msg, String &message, String keyboard = "");` <br>
 `void sendMessage(const TBMessage &msg, const char* message, ReplyKeyboard  &keyboard);` <br>
@@ -376,7 +376,7 @@ Parameters:
 [back to TOC](#table-of-contents)
 
 
-### `AsyncTelegram2::removeReplyKeyboard()`
+### `AsyncTelegramBot::removeReplyKeyboard()`
 `bool removeReplyKeyboard(int64_t id, String message, bool selective = false)` <br><br>
 Remove an active replyKeyboard for a specified user by sending a message. <br>
 Parameters:
